@@ -7,25 +7,31 @@ import (
 )
 
 func main() {
+	db, err := ConnectToDB() //name of the database
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
 	// read file
 	result, err := ReadDataFromFile("data/Data.dat")
 	if err != nil {
 		log.Fatal(err)
 	}
+	//Add data to database
+	err = addDataToDB(db, result)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Use the result variable
 	for _, data := range result {
 		fmt.Printf("Energy: %.2f, Refractive Indicator: %.2f, Absorption Indicator: %.2f\n", data.Energy, data.RefractiveIndicator, data.AbsorptionIndicator)
 	}
 
 	// connect to database
-	db, err := ConnectToDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, World!"))
-	})
+	http.HandleFunc("/home", handleHome)
+	http.HandleFunc("/about", handleAbout)
+	http.HandleFunc("/contact", handleContact)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
