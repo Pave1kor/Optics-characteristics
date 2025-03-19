@@ -13,13 +13,8 @@ func main() {
 	}
 	defer db.Close()
 
-	// read file
+	// read file and add data to the database
 	result, err := ReadDataFromFile("data/Data.dat")
-	if err != nil {
-		log.Fatal(err)
-	}
-	//Add data to database
-	err = addDataToDB(db, result)
 	if err != nil {
 		log.Fatal(err)
 	}

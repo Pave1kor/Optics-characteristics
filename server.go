@@ -17,7 +17,7 @@ const (
 )
 
 // connect to database
-func ConnectToDB() (*sql.DB, error) {
+func ConnectToDB(result []Data) (*sql.DB, error) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -26,30 +26,22 @@ func ConnectToDB() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// err = db.Ping()
-	// if err != nil {
-	// 	return nil, err
-	// }
 	fmt.Println("Successfully connected to the database!")
-	return db, nil
-}
 
-// add data to database
-func addDataToDB(db *sql.DB, result []Data) error {
 	// create table
 	query := `CREATE TABLE IF NOT EXISTS data (energy float, refractiveIndicator float, absorptionIndicator float)`
-	_, err := db.Exec(query)
+	_, err = db.Exec(query)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	// insert data
+
+	// insert data (should be done in a separately)
 	query = `INSERT INTO data (energy, refractiveIndicator, absorptionIndicator) VALUES `
 	for _, data := range result {
 		_, err := db.Exec(query, data.Energy, data.RefractiveIndicator, data.AbsorptionIndicator)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return db, nil
 }
