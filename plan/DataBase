@@ -1,0 +1,3 @@
+CREATE USER pavelkor WITH PASSWORD '1618';
+CREATE DATABASE optics OWNER pavelkor;
+ALTER ROLE pavelkor; WITH LOGIN;

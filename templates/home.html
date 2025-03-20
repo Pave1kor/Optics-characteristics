@@ -21,6 +21,40 @@
         <section>
             <h2>Introduction</h2>
             <p>This server provides resources and information on condensed state physics.</p>
+           
+            <!-- Кнопка для загрузки данных из базы данных -->
+            <form action="/" method="POST">
+                <input type="hidden" name="action" value="load">
+                <button class="return" type="submit">Load Data</button>
+            </form>
+
+            <!-- Кнопка для удаления данных -->
+            <form action="/" method="POST">
+                <input type="hidden" name="action" value="delete">
+                <button class="return" type="submit">Delete Data</button>
+            </form>
+            <!-- Кнопка для добавления данных в базу данных из файла -->
+              <!-- Кнопка для удаления данных -->
+            <form action="/" method="POST">
+                <input type="hidden" name="action" value="add">
+                <button class="return" type="submit">Add Data</button>
+            </form>
+            {{if .}}
+            <table>
+                <tr>
+                    <th>Energy</th>
+                    <th>Absorption coefficient</th>
+                    <th>Reflection coefficient</th>
+                </tr>
+                {{range .}}
+                <tr>
+                    <td>{{.Energy}}</td>
+                    <td>{{.AbsorptionCoefficient}}</td>
+                    <td>{{.AbsorptionCoefficient}}</td>
+                </tr>
+                {{end}}
+            </table>
+            {{end}}
         </section>
         <section>
             <h2>Latest News</h2>
@@ -31,4 +65,4 @@
         <p>&copy; 2023 Physics Condensed State Server. All rights reserved.</p>
     </footer>
 </body>
-</html></html>
+</html>

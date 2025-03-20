@@ -1,32 +1,81 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	// "github.com/gorilla/sessions"
 )
 
 // var _:=seesions.NewCookieStore([]byte("secret-key"))
-// handleHome handles the home page
+// handleHome обрабатывает главную страницу
 func handleHome(w http.ResponseWriter, r *http.Request) {
 	temp, err := template.ParseFiles("templates/home.html")
 	if err != nil {
 		http.Error(w, "Ошибка загрузки шаблона", http.StatusInternalServerError)
+		log.Println("Ошибка загрузки шаблона:", err)
 		return
 	}
-	if r.Method == "POST" {
-		r.ParseForm()
-		db, err := ConnectToDB()
+	db, err := connectToDB()
+	if err != nil {
+		http.Error(w, "Ошибка подключения к базе данных", http.StatusInternalServerError)
+		log.Println("Ошибка подключения к базе данных:", err)
+		return
+	}
+	defer db.Close()
+
+	switch r.Method {
+	case "GET":
+		data, err := getDataFromDB(db)
 		if err != nil {
-			http.Error(w, "Ошибка подключения к базе данных", http.StatusInternalServerError)
+			http.Error(w, "Ошибка получения данных из базы", http.StatusInternalServerError)
+			log.Println("Ошибка получения данных из БД:", err)
 			return
 		}
-		defer db.Close()
+		temp.Execute(w, data)
 
-		temp.Execute(w, nil)
+	case "POST":
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Ошибка обработки формы", http.StatusBadRequest)
+			log.Println("Ошибка обработки формы:", err)
+			return
+		}
+		var err error
+		action := r.FormValue("action")
+		switch action {
+		case "load":
+			var data interface{}
+			data, err = getDataFromDB(db)
+			if err != nil {
+				http.Error(w, "Ошибка получения данных из базы", http.StatusInternalServerError)
+				log.Println("Ошибка получения данных из БД:", err)
+				return
+			}
+			temp.Execute(w, data)
+		case "delete":
+			err = deleteDataFromDB(db)
+			if err != nil {
+				http.Error(w, "Ошибка удаления данных", http.StatusInternalServerError)
+				log.Println("Ошибка удаления данных:", err)
+				return
+			}
+			temp.Execute(w, nil)
+		case "add":
+			err = addDataToDB(db)
+			if err != nil {
+				http.Error(w, "Ошибка добавления данных", http.StatusInternalServerError)
+				log.Println("Ошибка добавления данных:", err)
+				return
+			}
+			temp.Execute(w, nil)
+		default:
+			err = fmt.Errorf("некорректное действие")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Println("Ошибка:", err)
+			return
+		}
 	}
-
-	temp.Execute(w, nil)
 }
 
 // handleAbout handles the about page
