@@ -43,15 +43,13 @@
             {{if .}}
             <table>
                 <tr>
-                    <th>Energy</th>
-                    <th>Absorption coefficient</th>
-                    <th>Reflection coefficient</th>
+                    <th>{{.X}}</th>
+                    <th>{{.Y}}</th>
                 </tr>
                 {{range .}}
                 <tr>
-                    <td>{{.Energy}}</td>
-                    <td>{{.AbsorptionCoefficient}}</td>
-                    <td>{{.AbsorptionCoefficient}}</td>
+                    <td>{{.X}}</td>
+                    <td>{{.Y}}</td>
                 </tr>
                 {{end}}
             </table>

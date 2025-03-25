@@ -35,49 +35,44 @@ func (manager *DBManager) connectToDB() error {
 		return fmt.Errorf("не удалось подключиться к БД: %w", err)
 	}
 	fmt.Println("Успешное подключение к базе данных")
-
-	// Создание таблицы, если её нет //перенести в отдельный метод+ добавить ключ
-	query := `CREATE TABLE IF NOT EXISTS data (
-	id SERIAL PRIMARY KEY,
-	energy DOUBLE PRECISION, 
-	reflection_coefficient DOUBLE PRECISION, 
-	absorption_coefficient DOUBLE PRECISION
-)`
-	_, err = manager.db.Exec(query)
-	if err != nil {
-		return fmt.Errorf("ошибка при создании таблицы: %w", err)
-	}
-
-	fmt.Println("Таблица проверена/создана")
 	return nil
 }
 
 // Add data to baseData
-func (manager *DBManager) addDataToDB() error {
+func (manager *DBManager) addDataToDB(name string) (Title, error) {
 	//Load data - сделать универсальным
-	result, err := readDataFromFile("data/Data.dat")
+	result, title, err := readDataFromFile("data/Data.dat") //путь к файлу name.name
 	if err != nil {
-		return fmt.Errorf("ошибка чтения данных из файла: %w", err)
+		return Title{}, fmt.Errorf("ошибка чтения данных из файла: %w", err)
 	}
+	query := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS "%s" ("%s" FLOAT PRIMARY KEY, "%s" FLOAT NOT NULL)`,
+		name, title.X, title.Y)
 
-	query := `INSERT INTO data (energy, reflection_coefficient, absorption_coefficient)
-	  VALUES ($1, $2, $3)`
+	_, err = manager.db.Exec(query)
+	if err != nil {
+		return Title{}, fmt.Errorf("ошибка при создании таблицы: %w", err)
+	}
+	fmt.Println("Таблица успешно создана")
+
+	query = fmt.Sprintf(`INSERT INTO %s ("%s", "%s") VALUES (&1, &2)ON CONFLICT (id) DO UPDATE SET "%s" = EXCLUDED."%s", "%s" = EXCLUDED."%s";`,
+		name, title.X, title.Y, title.X, title.X, title.Y, title.Y)
 
 	// Вставка данных
 	for _, data := range result {
-		_, err := manager.db.Exec(query, data.Energy, data.ReflectionCoefficient, data.AbsorptionCoefficient)
+		_, err := manager.db.Exec(query, data.X, data.Y)
 		if err != nil {
-			return fmt.Errorf("ошибка при вставке данных: %w", err)
+			return Title{}, fmt.Errorf("ошибка при вставке данных: %w", err)
 		}
 	}
 	fmt.Println("Данные успешно добавлены")
-	return nil
+	return title, nil
 }
 
 // Получение данных из БД
-func (manager *DBManager) getDataFromDB() ([]Data, error) {
+func (manager *DBManager) getDataFromDB(name string, title Title) ([]Data, error) {
 	// добавить ключи
-	query := `SELECT energy, reflection_coefficient, absorption_coefficient FROM data`
+	query := fmt.Sprintf(`SELECT "%s", "%s" FROM %s`,
+		title.X, title.Y, name)
 	rows, err := manager.db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при запросе данных: %w", err)
@@ -87,7 +82,7 @@ func (manager *DBManager) getDataFromDB() ([]Data, error) {
 	var results []Data
 	for rows.Next() {
 		var data Data
-		if err := rows.Scan(&data.Energy, &data.ReflectionCoefficient, &data.AbsorptionCoefficient); err != nil {
+		if err := rows.Scan(&data.X, &data.Y); err != nil {
 			return nil, fmt.Errorf("ошибка при сканировании данных: %w", err)
 		}
 		results = append(results, data)
@@ -103,13 +98,25 @@ func (manager *DBManager) getDataFromDB() ([]Data, error) {
 }
 
 // Удалениеданных из БД
-func (manager *DBManager) deleteDataFromDB() error {
+func (manager *DBManager) deleteDataFromDB(name string) error {
 	//добавить ключи
-	query := `DELETE FROM data`
+	query := fmt.Sprintf(`DELETE FROM %s`,
+		name)
 	_, err := manager.db.Exec(query)
 	if err != nil {
 		return fmt.Errorf("ошибка при удалении данных: %w", err)
 	}
 	fmt.Println("Данные успешно удалены")
+	return nil
+}
+
+// Удаление таблицы
+func (manager *DBManager) dropTable(name string) error { //удалить по запросу
+	query := fmt.Sprintf(`DROP TABLE IF EXISTS %s;`, name)
+	_, err := manager.db.Exec(query)
+	if err != nil {
+		return fmt.Errorf("ошибка при удалении таблицы: %w", err)
+	}
+	fmt.Println("Таблица успешно удалена")
 	return nil
 }
