@@ -17,17 +17,18 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 		log.Println("Ошибка загрузки шаблона:", err)
 		return
 	}
-	db, err := connectToDB()
+	experiment := &DBManager{}
+	err = experiment.connectToDB()
 	if err != nil {
 		http.Error(w, "Ошибка подключения к базе данных", http.StatusInternalServerError)
 		log.Println("Ошибка подключения к базе данных:", err)
 		return
 	}
-	defer db.Close()
+	defer experiment.db.Close()
 
 	switch r.Method {
 	case "GET":
-		data, err := getDataFromDB(db)
+		data, err := experiment.getDataFromDB()
 		if err != nil {
 			http.Error(w, "Ошибка получения данных из базы", http.StatusInternalServerError)
 			log.Println("Ошибка получения данных из БД:", err)
@@ -46,7 +47,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 		switch action {
 		case "load":
 			var data interface{}
-			data, err = getDataFromDB(db)
+			data, err = experiment.getDataFromDB()
 			if err != nil {
 				http.Error(w, "Ошибка получения данных из базы", http.StatusInternalServerError)
 				log.Println("Ошибка получения данных из БД:", err)
@@ -54,7 +55,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 			}
 			temp.Execute(w, data)
 		case "delete":
-			err = deleteDataFromDB(db)
+			err = experiment.deleteDataFromDB()
 			if err != nil {
 				http.Error(w, "Ошибка удаления данных", http.StatusInternalServerError)
 				log.Println("Ошибка удаления данных:", err)
@@ -62,7 +63,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 			}
 			temp.Execute(w, nil)
 		case "add":
-			err = addDataToDB(db)
+			err = experiment.addDataToDB()
 			if err != nil {
 				http.Error(w, "Ошибка добавления данных", http.StatusInternalServerError)
 				log.Println("Ошибка добавления данных:", err)
@@ -81,6 +82,14 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 // handleAbout handles the about page
 func handleAbout(w http.ResponseWriter, r *http.Request) {
 	temp, err := template.ParseFiles("templates/about.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	temp.Execute(w, nil)
+}
+func handleProject(w http.ResponseWriter, r *http.Request) {
+	temp, err := template.ParseFiles("templates/project.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
