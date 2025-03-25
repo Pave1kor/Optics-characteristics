@@ -18,6 +18,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	experiment := &DBManager{}
+	title := Title{}
 	err = experiment.connectToDB()
 	if err != nil {
 		http.Error(w, "Ошибка подключения к базе данных", http.StatusInternalServerError)
@@ -25,10 +26,25 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer experiment.db.Close()
+	//удаление таблицы
 
+	err = experiment.dropTable("data")
+	if err != nil {
+		http.Error(w, "Ошибка удаления данных", http.StatusInternalServerError)
+		log.Println("Ошибка удаления данных:", err)
+		return
+	}
+	//созание таблицы
+	title, err = experiment.addDataToDB("data")
+	if err != nil {
+		http.Error(w, "Ошибка создания таблицы", http.StatusInternalServerError)
+		log.Println("Ошибка создания таблицы:", err)
+		return
+	}
+	// запросы к базе данных
 	switch r.Method {
 	case "GET":
-		data, err := experiment.getDataFromDB()
+		data, err := experiment.getDataFromDB("data", title)
 		if err != nil {
 			http.Error(w, "Ошибка получения данных из базы", http.StatusInternalServerError)
 			log.Println("Ошибка получения данных из БД:", err)
@@ -47,7 +63,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 		switch action {
 		case "load":
 			var data interface{}
-			data, err = experiment.getDataFromDB()
+			data, err = experiment.getDataFromDB("data", title)
 			if err != nil {
 				http.Error(w, "Ошибка получения данных из базы", http.StatusInternalServerError)
 				log.Println("Ошибка получения данных из БД:", err)
@@ -55,7 +71,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 			}
 			temp.Execute(w, data)
 		case "delete":
-			err = experiment.deleteDataFromDB()
+			err = experiment.deleteDataFromDB("data")
 			if err != nil {
 				http.Error(w, "Ошибка удаления данных", http.StatusInternalServerError)
 				log.Println("Ошибка удаления данных:", err)
@@ -63,7 +79,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 			}
 			temp.Execute(w, nil)
 		case "add":
-			err = experiment.addDataToDB()
+			_, err = experiment.addDataToDB("data")
 			if err != nil {
 				http.Error(w, "Ошибка добавления данных", http.StatusInternalServerError)
 				log.Println("Ошибка добавления данных:", err)
