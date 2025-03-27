@@ -54,7 +54,7 @@ func (manager *DBManager) addDataToDB(name string) (Title, error) {
 	}
 	fmt.Println("Таблица успешно создана")
 
-	query = fmt.Sprintf(`INSERT INTO %s ("%s", "%s") VALUES (&1, &2)ON CONFLICT (id) DO UPDATE SET "%s" = EXCLUDED."%s", "%s" = EXCLUDED."%s";`,
+	query = fmt.Sprintf(`INSERT INTO %s ("%s", "%s") VALUES ($1, $2)ON CONFLICT (id) DO UPDATE SET "%s" = EXCLUDED."%s", "%s" = EXCLUDED."%s";`,
 		name, title.X, title.Y, title.X, title.X, title.Y, title.Y)
 
 	// Вставка данных
