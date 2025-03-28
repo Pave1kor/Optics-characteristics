@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"html/template"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func handleHome(w http.ResponseWriter, r *http.Request) {
+func HandleHome(w http.ResponseWriter, r *http.Request) {
 	temp, err := template.ParseFiles("templates/home.html")
 	if err != nil {
 		http.Error(w, "Ошибка загрузки шаблона", http.StatusInternalServerError)
