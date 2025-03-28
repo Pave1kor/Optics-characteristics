@@ -1,4 +1,4 @@
-module main.go
+module github.com/Pave1kor/Optics-characteristics
 
 go 1.24.0
 

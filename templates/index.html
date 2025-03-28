@@ -35,11 +35,14 @@
                 <button class="return" type="submit">Delete Data</button>
             </form>
             <!-- Кнопка для добавления данных в базу данных из файла -->
-              <!-- Кнопка для удаления данных -->
             <form action="/" method="POST">
                 <input type="hidden" name="action" value="add">
                 <button class="return" type="submit">Add Data</button>
             </form>
+            <!-- Кнопка для дропа базы данных -->
+            <form action="/" method="POST">
+                <input type="hidden" name="action" value="drop">
+                <button class="return" type="submit">Drop Data</button>
             {{if .}}
             <table>
                 <tr>

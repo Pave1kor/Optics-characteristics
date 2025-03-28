@@ -1,0 +1,72 @@
+package main
+
+import (
+	"html/template"
+	"log"
+	"net/http"
+)
+
+func handleHome(w http.ResponseWriter, r *http.Request) {
+	temp, err := template.ParseFiles("templates/home.html")
+	if err != nil {
+		http.Error(w, "Ошибка загрузки шаблона", http.StatusInternalServerError)
+		log.Println("Ошибка загрузки шаблона:", err)
+		return
+	}
+	experiment := &DBManager{}
+	err = experiment.ConnectToDB()
+	if err != nil {
+		http.Error(w, "Ошибка подключения к базе данных", http.StatusInternalServerError)
+		log.Println("Ошибка подключения к базе данных:", err)
+		return
+	}
+	defer experiment.CloseDB()
+
+	switch r.Method {
+	case "GET":
+		files, err := experiment.GetListOfFiles()
+		if err != nil {
+			http.Error(w, "Ошибка получения списка файлов", http.StatusInternalServerError)
+			log.Println("Ошибка получения списка файлов:", err)
+			return
+		}
+		if len(files) == 0 {
+			log.Println("Список файлов пуст")
+			temp.Execute(w, []string{})
+			return
+		}
+		if err := temp.Execute(w, files); err != nil {
+			http.Error(w, "Ошибка рендеринга шаблона", http.StatusInternalServerError)
+			log.Println("Ошибка рендеринга шаблона:", err)
+		}
+	case "POST":
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Ошибка обработки формы", http.StatusBadRequest)
+			log.Println("Ошибка обработки формы:", err)
+			return
+		}
+		action := r.FormValue("action")
+		handlePostAction(w, r, experiment, action)
+	default:
+		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		log.Println("Метод не поддерживается:", r.Method)
+	}
+}
+
+func handlePostAction(w http.ResponseWriter, r *http.Request, experiment *DBManager, action string) {
+	switch action {
+	case "load":
+		// Логика для загрузки данных
+	case "delete":
+		// Логика для удаления данных
+	case "add":
+		// Логика для добавления данных
+	case "drop":
+		// Логика для удаления таблицы
+	case "create":
+		// Логика для создания таблицы
+	default:
+		http.Error(w, "Некорректное действие", http.StatusBadRequest)
+		log.Println("Некорректное действие:", action)
+	}
+}

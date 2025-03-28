@@ -6,9 +6,11 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/", handleHome)
-	http.HandleFunc("/about", handleAbout)
-	http.HandleFunc("/contact", handleContact)
-	http.HandleFunc("/project", handleProject)
+	http.HandleFunc("/", handlerHome)
+	http.HandleFunc("/about", handlerAbout)
+	http.HandleFunc("/project", handlerProject)
+	http.HandleFunc("/contact", handlerContact)
+
+	log.Println("Сервер запущен на http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

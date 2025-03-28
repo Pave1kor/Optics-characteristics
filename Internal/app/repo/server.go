@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	_ "github.com/lib/pq"
 )
@@ -16,6 +17,10 @@ const (
 	dbname   = "optics"
 )
 
+type DataId struct {
+	measurement_date   string
+	measurement_number int
+}
 type DBManager struct {
 	db *sql.DB
 }
@@ -29,7 +34,6 @@ func (manager *DBManager) connectToDB() error {
 	if err != nil {
 		return fmt.Errorf("ошибка подключения к БД: %w", err)
 	}
-
 	// Проверка соединения
 	if err := manager.db.Ping(); err != nil {
 		return fmt.Errorf("не удалось подключиться к БД: %w", err)
@@ -38,34 +42,77 @@ func (manager *DBManager) connectToDB() error {
 	return nil
 }
 
+// Get list of files
+func (manager *DBManager) getListOfFiles() ([]DataId, error) {
+	query := `SELECT measurement_date, measurement_number FROM files;`
+	rows, err := manager.db.Query(query)
+	dataSet := make([]DataId, 0)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при запросе данных: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var data DataId
+		if err := rows.Scan(&data.measurement_date, &data.measurement_number); err != nil {
+			return nil, fmt.Errorf("ошибка при сканировании данных: %w", err)
+		}
+		dataSet = append(dataSet, data)
+	}
+	return dataSet, nil
+}
+
 // Add data to baseData
-func (manager *DBManager) addDataToDB(name string) (Title, error) {
+func (manager *DBManager) addDataToDB(name string) error {
+	// SQL-запрос для создания таблицы
+	createTableQuery := `
+CREATE TABLE IF NOT EXISTS measurements (
+    id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    measurement_date DATE NOT NULL,
+    measurement_number INTEGER NOT NULL,
+    column_name TEXT NOT NULL,
+    x DOUBLE PRECISION NOT NULL,
+    y DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id, column_name)
+);`
+
+	_, err := manager.db.Exec(createTableQuery)
+	if err != nil {
+		log.Fatal("Ошибка при создании таблицы:", err)
+	}
+	fmt.Println("Таблица успешно создана")
 	//Load data - сделать универсальным
 	result, title, err := readDataFromFile("data/Data.dat") //путь к файлу name.name
 	if err != nil {
-		return Title{}, fmt.Errorf("ошибка чтения данных из файла: %w", err)
+		return fmt.Errorf("ошибка чтения данных из файла: %w", err)
 	}
-	query := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS "%s" ("%s" FLOAT PRIMARY KEY, "%s" FLOAT NOT NULL)`,
-		name, title.X, title.Y)
 
-	_, err = manager.db.Exec(query)
+	// Данные измерения, получить от пользователя
+	measurementType := "temperature"
+	measurementDate := "2025-03-28"
+
+	// Получаем следующий номер измерения
+	var nextNumber int
+	query := `SELECT get_next_measurement_number($1, $2)`
+	err = manager.db.QueryRow(query, measurementType, measurementDate).Scan(&nextNumber)
 	if err != nil {
-		return Title{}, fmt.Errorf("ошибка при создании таблицы: %w", err)
+		log.Fatal(err)
 	}
-	fmt.Println("Таблица успешно создана")
 
-	query = fmt.Sprintf(`INSERT INTO %s ("%s", "%s") VALUES ($1, $2)ON CONFLICT (id) DO UPDATE SET "%s" = EXCLUDED."%s", "%s" = EXCLUDED."%s";`,
-		name, title.X, title.Y, title.X, title.X, title.Y, title.Y)
+	// Генерируем ID
+	id := fmt.Sprintf("%s_%s_%d", measurementType, measurementDate, nextNumber)
 
-	// Вставка данных
-	for _, data := range result {
-		_, err := manager.db.Exec(query, data.X, data.Y)
+	// Вставляем каждую точку (x, y)
+	insertQuery := `INSERT INTO measurements (id, type, measurement_date, measurement_number, column_name, x, y) 
+					VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
+	for _, point := range result {
+		_, err := manager.db.Exec(insertQuery, id, measurementType, measurementDate, nextNumber, title, point.X, point.Y)
 		if err != nil {
-			return Title{}, fmt.Errorf("ошибка при вставке данных: %w", err)
+			log.Fatal(err)
 		}
 	}
-	fmt.Println("Данные успешно добавлены")
-	return title, nil
+	return nil
 }
 
 // Получение данных из БД
