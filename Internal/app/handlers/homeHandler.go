@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Pave1kor/Optics-characteristics/internal/app/models"
+	"github.com/Pave1kor/Optics-characteristics/internal/app/repo"
 )
 
 func HandleHome(w http.ResponseWriter, r *http.Request) {
@@ -15,8 +16,9 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 		log.Println("Ошибка загрузки шаблона:", err)
 		return
 	}
-	experiment := &models.
-	err = experiment.ConnectDB()
+	dbManager := &models.DBManager{}
+	experiment := repo.NewDBWrapper(dbManager) // Создаём обёртку
+	err = experiment.ConnectToDb()
 	if err != nil {
 		http.Error(w, "Ошибка подключения к базе данных", http.StatusInternalServerError)
 		log.Println("Ошибка подключения к базе данных:", err)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	"database/sql"
+
 	"github.com/Pave1kor/Optics-characteristics/internal/app/models"
 	_ "github.com/lib/pq"
 )
@@ -18,8 +20,18 @@ const (
 	dbname   = "optics"
 )
 
+// DBWrapper оборачивает DBManager и добавляет методы
+type DBWrapper struct {
+	*models.DBManager
+}
+
+// NewDBWrapper - конструктор
+func NewDBWrapper(manager *models.DBManager) *DBWrapper {
+	return &DBWrapper{manager}
+}
+
 // Подключение к БД
-func (manager models.DataId) connectToDB() error {
+func (manager *DBWrapper) ConnectToDb() error {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 	var err error
@@ -36,7 +48,7 @@ func (manager models.DataId) connectToDB() error {
 }
 
 // Get list of files
-func (manager *DBManager) getListOfFiles() ([]models.DataId, error) {
+func (manager *DBManager) GetListOfFiles() ([]models.DataId, error) {
 	query := `SELECT measurement_date, measurement_number FROM files;`
 	rows, err := manager.db.Query(query)
 	dataSet := make([]models.DataId, 0)
@@ -55,7 +67,7 @@ func (manager *DBManager) getListOfFiles() ([]models.DataId, error) {
 }
 
 // Add data to baseData
-func (manager *DBManager) addDataToDB(name string) error {
+func (manager *DBManager) AddDataToDB(name string) error {
 	// SQL-запрос для создания таблицы
 	createTableQuery := `
 CREATE TABLE IF NOT EXISTS measurements (
@@ -75,7 +87,7 @@ CREATE TABLE IF NOT EXISTS measurements (
 	}
 	fmt.Println("Таблица успешно создана")
 	//Load data - сделать универсальным
-	result, title, err := readDataFromFile("data/Data.dat") //путь к файлу name.name
+	result, title, err := ReadDataFromFile("data/Data.dat") //путь к файлу name.name
 	if err != nil {
 		return fmt.Errorf("ошибка чтения данных из файла: %w", err)
 	}
@@ -109,7 +121,7 @@ CREATE TABLE IF NOT EXISTS measurements (
 }
 
 // Получение данных из БД
-func (manager *DBManager) getDataFromDB(name string, title Title) ([]Data, error) {
+func (manager *DBManager) GetDataFromDB(name string, title Title) ([]Data, error) {
 	// добавить ключи
 	query := fmt.Sprintf(`SELECT "%s", "%s" FROM %s`,
 		title.X, title.Y, name)
@@ -138,7 +150,7 @@ func (manager *DBManager) getDataFromDB(name string, title Title) ([]Data, error
 }
 
 // Удалениеданных из БД
-func (manager *DBManager) deleteDataFromDB(name string) error {
+func (manager *DBManager) DeleteDataFromDB(name string) error {
 	//добавить ключи
 	query := fmt.Sprintf(`DELETE FROM %s`,
 		name)
@@ -151,7 +163,7 @@ func (manager *DBManager) deleteDataFromDB(name string) error {
 }
 
 // Удаление таблицы
-func (manager *DBManager) dropTable(name string) error { //удалить по запросу
+func (manager *DBManager) DropTable(name string) error { //удалить по запросу
 	query := fmt.Sprintf(`DROP TABLE IF EXISTS %s;`, name)
 	_, err := manager.db.Exec(query)
 	if err != nil {
