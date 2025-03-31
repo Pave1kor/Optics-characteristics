@@ -38,7 +38,7 @@ func (manager *DBWrapper) ConnectToDb() error { //данные для подлю
 
 // Get list of files
 func (manager *DBWrapper) GetListOfFiles() ([]models.DataId, error) {
-	query := `SELECT measurement_date, measurement_number FROM files;`
+	query := `SELECT Date, Number FROM files;`
 	rows, err := manager.Db.Query(query)
 	dataSet := make([]models.DataId, 0)
 	if err != nil {
