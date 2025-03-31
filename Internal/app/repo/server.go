@@ -1,10 +1,11 @@
-package main
+package repo
 
 import (
 	"database/sql"
 	"fmt"
 	"log"
 
+	"github.com/Pave1kor/Optics-characteristics/internal/app/models"
 	_ "github.com/lib/pq"
 )
 
@@ -17,16 +18,8 @@ const (
 	dbname   = "optics"
 )
 
-type DataId struct {
-	measurement_date   string
-	measurement_number int
-}
-type DBManager struct {
-	db *sql.DB
-}
-
 // Подключение к БД
-func (manager *DBManager) connectToDB() error {
+func (manager models.DataId) connectToDB() error {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 	var err error
@@ -43,17 +36,17 @@ func (manager *DBManager) connectToDB() error {
 }
 
 // Get list of files
-func (manager *DBManager) getListOfFiles() ([]DataId, error) {
+func (manager *DBManager) getListOfFiles() ([]models.DataId, error) {
 	query := `SELECT measurement_date, measurement_number FROM files;`
 	rows, err := manager.db.Query(query)
-	dataSet := make([]DataId, 0)
+	dataSet := make([]models.DataId, 0)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при запросе данных: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var data DataId
-		if err := rows.Scan(&data.measurement_date, &data.measurement_number); err != nil {
+		var data models.DataId
+		if err := rows.Scan(&data.Date, &data.Number); err != nil {
 			return nil, fmt.Errorf("ошибка при сканировании данных: %w", err)
 		}
 		dataSet = append(dataSet, data)

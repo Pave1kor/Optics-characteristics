@@ -1,8 +1,8 @@
 package models
 
 type DataId struct {
-	measurement_date   string
-	measurement_number int
+	Date   string
+	Number int
 }
 
 type Data struct {

@@ -8,15 +8,6 @@ import (
 	"unicode"
 )
 
-type Data struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-}
-type Title struct {
-	X string `json:"x"`
-	Y string `json:"y"`
-}
-
 // Добавить проверку - два ли столбца в файле
 func readDataFromFile(filePath string) ([]Data, Title, error) {
 	file, err := os.Open(filePath)

@@ -4,6 +4,8 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/Pave1kor/Optics-characteristics/internal/app/models"
 )
 
 func HandleHome(w http.ResponseWriter, r *http.Request) {
@@ -13,8 +15,8 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 		log.Println("Ошибка загрузки шаблона:", err)
 		return
 	}
-	experiment := &DBManager{}
-	err = experiment.ConnectToDB()
+	experiment := &models.
+	err = experiment.ConnectDB()
 	if err != nil {
 		http.Error(w, "Ошибка подключения к базе данных", http.StatusInternalServerError)
 		log.Println("Ошибка подключения к базе данных:", err)
