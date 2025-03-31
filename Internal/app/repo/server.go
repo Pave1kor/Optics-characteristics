@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"database/sql"
-
 	"github.com/Pave1kor/Optics-characteristics/internal/app/models"
+	read "github.com/Pave1kor/Optics-characteristics/internal/app/services"
 	_ "github.com/lib/pq"
 )
 
@@ -20,27 +19,17 @@ const (
 	dbname   = "optics"
 )
 
-// DBWrapper оборачивает DBManager и добавляет методы
-type DBWrapper struct {
-	*models.DBManager
-}
-
-// NewDBWrapper - конструктор
-func NewDBWrapper(manager *models.DBManager) *DBWrapper {
-	return &DBWrapper{manager}
-}
-
 // Подключение к БД
-func (manager *DBWrapper) ConnectToDb() error {
+func (manager *DBWrapper) ConnectToDb() error { //данные для подлючения внести в отдельный конфиг
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 	var err error
-	manager.db, err = sql.Open("postgres", psqlInfo)
+	manager.Db, err = sql.Open("postgres", psqlInfo)
 	if err != nil {
 		return fmt.Errorf("ошибка подключения к БД: %w", err)
 	}
 	// Проверка соединения
-	if err := manager.db.Ping(); err != nil {
+	if err := manager.Db.Ping(); err != nil {
 		return fmt.Errorf("не удалось подключиться к БД: %w", err)
 	}
 	fmt.Println("Успешное подключение к базе данных")
@@ -48,9 +37,9 @@ func (manager *DBWrapper) ConnectToDb() error {
 }
 
 // Get list of files
-func (manager *DBManager) GetListOfFiles() ([]models.DataId, error) {
+func (manager *DBWrapper) GetListOfFiles() ([]models.DataId, error) {
 	query := `SELECT measurement_date, measurement_number FROM files;`
-	rows, err := manager.db.Query(query)
+	rows, err := manager.Db.Query(query)
 	dataSet := make([]models.DataId, 0)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при запросе данных: %w", err)
@@ -67,7 +56,7 @@ func (manager *DBManager) GetListOfFiles() ([]models.DataId, error) {
 }
 
 // Add data to baseData
-func (manager *DBManager) AddDataToDB(name string) error {
+func (manager *DBWrapper) AddDataToDB(name string) error {
 	// SQL-запрос для создания таблицы
 	createTableQuery := `
 CREATE TABLE IF NOT EXISTS measurements (
@@ -81,13 +70,13 @@ CREATE TABLE IF NOT EXISTS measurements (
     PRIMARY KEY (id, column_name)
 );`
 
-	_, err := manager.db.Exec(createTableQuery)
+	_, err := manager.Db.Exec(createTableQuery)
 	if err != nil {
 		log.Fatal("Ошибка при создании таблицы:", err)
 	}
 	fmt.Println("Таблица успешно создана")
 	//Load data - сделать универсальным
-	result, title, err := ReadDataFromFile("data/Data.dat") //путь к файлу name.name
+	result, title, err := read.ReadDataFromFile("data/Data.dat") //путь к файлу name.name
 	if err != nil {
 		return fmt.Errorf("ошибка чтения данных из файла: %w", err)
 	}
@@ -99,7 +88,7 @@ CREATE TABLE IF NOT EXISTS measurements (
 	// Получаем следующий номер измерения
 	var nextNumber int
 	query := `SELECT get_next_measurement_number($1, $2)`
-	err = manager.db.QueryRow(query, measurementType, measurementDate).Scan(&nextNumber)
+	err = manager.Db.QueryRow(query, measurementType, measurementDate).Scan(&nextNumber)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -112,7 +101,7 @@ CREATE TABLE IF NOT EXISTS measurements (
 					VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	for _, point := range result {
-		_, err := manager.db.Exec(insertQuery, id, measurementType, measurementDate, nextNumber, title, point.X, point.Y)
+		_, err := manager.Db.Exec(insertQuery, id, measurementType, measurementDate, nextNumber, title, point.X, point.Y)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -121,19 +110,19 @@ CREATE TABLE IF NOT EXISTS measurements (
 }
 
 // Получение данных из БД
-func (manager *DBManager) GetDataFromDB(name string, title Title) ([]Data, error) {
+func (manager *DBWrapper) GetDataFromDB(name string, title models.Title) ([]models.Data, error) {
 	// добавить ключи
 	query := fmt.Sprintf(`SELECT "%s", "%s" FROM %s`,
 		title.X, title.Y, name)
-	rows, err := manager.db.Query(query)
+	rows, err := manager.Db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при запросе данных: %w", err)
 	}
 	defer rows.Close()
 
-	var results []Data
+	var results []models.Data
 	for rows.Next() {
-		var data Data
+		var data models.Data
 		if err := rows.Scan(&data.X, &data.Y); err != nil {
 			return nil, fmt.Errorf("ошибка при сканировании данных: %w", err)
 		}
@@ -150,11 +139,11 @@ func (manager *DBManager) GetDataFromDB(name string, title Title) ([]Data, error
 }
 
 // Удалениеданных из БД
-func (manager *DBManager) DeleteDataFromDB(name string) error {
+func (manager *DBWrapper) DeleteDataFromDB(name string) error {
 	//добавить ключи
 	query := fmt.Sprintf(`DELETE FROM %s`,
 		name)
-	_, err := manager.db.Exec(query)
+	_, err := manager.Db.Exec(query)
 	if err != nil {
 		return fmt.Errorf("ошибка при удалении данных: %w", err)
 	}
@@ -163,9 +152,9 @@ func (manager *DBManager) DeleteDataFromDB(name string) error {
 }
 
 // Удаление таблицы
-func (manager *DBManager) DropTable(name string) error { //удалить по запросу
+func (manager *DBWrapper) DropTable(name string) error { //удалить по запросу
 	query := fmt.Sprintf(`DROP TABLE IF EXISTS %s;`, name)
-	_, err := manager.db.Exec(query)
+	_, err := manager.Db.Exec(query)
 	if err != nil {
 		return fmt.Errorf("ошибка при удалении таблицы: %w", err)
 	}

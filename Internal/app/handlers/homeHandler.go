@@ -24,7 +24,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 		log.Println("Ошибка подключения к базе данных:", err)
 		return
 	}
-	defer experiment.CloseDB()
+	defer experiment.DBManager.Db.Close()
 
 	switch r.Method {
 	case "GET":
@@ -57,7 +57,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handlePostAction(w http.ResponseWriter, r *http.Request, experiment *DBManager, action string) {
+func handlePostAction(w http.ResponseWriter, r *http.Request, experiment *repo.DBWrapper, action string) {
 	switch action {
 	case "load":
 		// Логика для загрузки данных

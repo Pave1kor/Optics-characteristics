@@ -1,11 +1,11 @@
-package main
+package handlers
 
 import (
 	"html/template"
 	"net/http"
 )
 
-func handleAbout(w http.ResponseWriter, r *http.Request) {
+func HandlerAbout(w http.ResponseWriter, r *http.Request) {
 	temp, err := template.ParseFiles("templates/about.html")
 	if err != nil {
 		http.Error(w, "Ошибка загрузки шаблона", http.StatusInternalServerError)
