@@ -1,4 +1,4 @@
-package main
+package servies
 
 import (
 	"bufio"
@@ -6,34 +6,27 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/Pave1kor/Optics-characteristics/internal/app/models"
 )
 
-type Data struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-}
-type Title struct {
-	X string `json:"x"`
-	Y string `json:"y"`
-}
-
 // Добавить проверку - два ли столбца в файле
-func readDataFromFile(filePath string) ([]Data, Title, error) {
+func ReadDataFromFile(filePath string) ([]models.Data, models.Title, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, Title{}, err
+		return nil, models.Title{}, err
 	}
 	defer file.Close()
 
-	result := make([]Data, 0)
-	title := Title{}
+	result := make([]models.Data, 0)
+	title := models.Title{}
 	scanner := bufio.NewScanner(file)
 	// read header
 	if scanner.Scan() {
 		text := scanner.Text()[0]
 		if unicode.IsLetter(rune(text)) {
 			header := strings.Fields(scanner.Text())
-			title = Title{
+			title = models.Title{
 				X: header[0],
 				Y: header[1],
 			}
@@ -45,10 +38,10 @@ func readDataFromFile(filePath string) ([]Data, Title, error) {
 		values := make([]float64, 2)
 		for i := range values {
 			if values[i], err = strconv.ParseFloat(dataLine[i], 64); err != nil {
-				return nil, Title{}, err
+				return nil, models.Title{}, err
 			}
 		}
-		result = append(result, Data{
+		result = append(result, models.Data{
 			X: values[0],
 			Y: values[1],
 		})
