@@ -7,25 +7,18 @@ import (
 
 	"github.com/Pave1kor/Optics-characteristics/internal/app/models"
 	read "github.com/Pave1kor/Optics-characteristics/internal/app/services"
+	config "github.com/Pave1kor/Optics-characteristics/internal/config"
 	_ "github.com/lib/pq"
-)
-
-// Настройки подключения к PostgreSQL
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "pavelkor"
-	password = "1618"
-	dbname   = "optics"
 )
 
 type DBInterface interface {
 	ConnectToDb() error
-	GetListOfFiles() ([]models.DataId, error)
+	GetListOfTables() ([]models.TableName, error)
 	AddDataToDB() error
 	GetDataFromDB(title models.Title) ([]models.Data, error)
 	DeleteDataFromDB() error
 	DropTable() error
+	GenerateMeasurementID(measurementType, measurementDate string) (string, int, error)
 	Close() error
 }
 
@@ -41,10 +34,17 @@ func NewDBManager() *DBManager {
 
 // Подключение к БД
 func (manager *DBManager) ConnectToDb() error { //данные для подлючения внести в отдельный конфиг
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	cfg := config.DBConfig{
+		Host:     "localhost",
+		Port:     5432,
+		User:     "pavelkor",
+		Password: "1618",
+		DBName:   "optics",
+		SSLMode:  "disable",
+	}
 	var err error
-	manager.Db, err = sql.Open("postgres", psqlInfo)
+	conn := cfg.ConnString()
+	manager.Db, err = sql.Open("postgres", conn)
 	if err != nil {
 		return fmt.Errorf("ошибка подключения к БД: %w", err)
 	}
@@ -57,40 +57,29 @@ func (manager *DBManager) ConnectToDb() error { //данные для подлю
 }
 
 // Get list of files
-func (manager *DBManager) GetListOfFiles() ([]models.DataId, error) {
-	query := `SELECT Date, Number FROM optics;`
-	rows, err := manager.Db.Query(query)
-	dataSet := make([]models.DataId, 0)
+func (manager *DBManager) GetListOfTables() ([]models.TableName, error) {
+	rows, err := manager.Db.Query(models.GetListOfTablesQuery)
+	list := []models.TableName{}
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при запросе данных: %w", err)
+		log.Fatal(err)
 	}
 	defer rows.Close()
+	// Вывод списка таблиц
+	fmt.Println("Список таблиц:")
 	for rows.Next() {
-		var data models.DataId
-		if err := rows.Scan(&data.Date, &data.Number); err != nil {
-			return nil, fmt.Errorf("ошибка при сканировании данных: %w", err)
+		var tableName models.TableName
+		if err := rows.Scan(&tableName); err != nil {
+			log.Fatal(err)
 		}
-		dataSet = append(dataSet, data)
+		list = append(list, tableName)
 	}
-	return dataSet, nil
+	return list, nil
 }
 
 // Add data to baseData
 func (manager *DBManager) AddDataToDB() error {
 	// SQL-запрос для создания таблицы
-	createTableQuery := `
-CREATE TABLE IF NOT EXISTS measurements (
-    id TEXT NOT NULL,
-    type TEXT NOT NULL,
-    measurement_date DATE NOT NULL,
-    measurement_number INTEGER NOT NULL,
-    column_name TEXT NOT NULL,
-    x DOUBLE PRECISION NOT NULL,
-    y DOUBLE PRECISION NOT NULL,
-    PRIMARY KEY (id, column_name)
-);`
-
-	_, err := manager.Db.Exec(createTableQuery)
+	_, err := manager.Db.Exec(models.CreateTableQuery)
 	if err != nil {
 		log.Fatal("Ошибка при создании таблицы:", err)
 	}
@@ -100,27 +89,19 @@ CREATE TABLE IF NOT EXISTS measurements (
 	if err != nil {
 		return fmt.Errorf("ошибка чтения данных из файла: %w", err)
 	}
+
+	//генерация нового ID
 	// Данные измерения, получить от пользователя
 	measurementType := "temperature"
 	measurementDate := "2025-03-28"
-
-	// Получаем следующий номер измерения
-	var nextNumber int
-	query := `SELECT get_next_measurement_number($1, $2)`
-	err = manager.Db.QueryRow(query, measurementType, measurementDate).Scan(&nextNumber)
+	id, nextNumber, err := manager.GenerateMeasurementID(measurementType, measurementDate)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("ошибка при генерации ID: %w", err)
 	}
 
-	// Генерируем ID
-	id := fmt.Sprintf("%s_%s_%d", measurementType, measurementDate, nextNumber)
-
 	// Вставляем каждую точку (x, y)
-	insertQuery := `INSERT INTO measurements (id, type, measurement_date, measurement_number, column_name, x, y) 
-					VALUES ($1, $2, $3, $4, $5, $6, $7)`
-
 	for _, point := range result {
-		_, err := manager.Db.Exec(insertQuery, id, measurementType, measurementDate, nextNumber, title, point.X, point.Y)
+		_, err := manager.Db.Exec(models.InsertQuery, id, measurementType, measurementDate, nextNumber, title, point.X, point.Y)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -130,7 +111,7 @@ CREATE TABLE IF NOT EXISTS measurements (
 
 // Получение данных из БД
 func (manager *DBManager) GetDataFromDB(title models.Title) ([]models.Data, error) {
-	// добавить ключи
+	// добавить ключи - конфиг?
 	query := fmt.Sprintf(`SELECT "%s", "%s" FROM data`,
 		title.X, title.Y)
 	rows, err := manager.Db.Query(query)
@@ -162,13 +143,22 @@ func (manager *DBManager) DeleteDataFromDB() error {
 	//добавить ключи
 	// query := fmt.Sprintf(`DELETE FROM %s`,
 	// 	name)
-	query := `DELETE FROM data`
-	_, err := manager.Db.Exec(query)
+	_, err := manager.Db.Exec(models.DeleteQuery)
 	if err != nil {
 		return fmt.Errorf("ошибка при удалении данных: %w", err)
 	}
 	fmt.Println("Данные успешно удалены")
 	return nil
+}
+func (manager *DBManager) GenerateMeasurementID(measurementType, measurementDate string) (string, int, error) {
+	var nextNumber int
+	err := manager.Db.QueryRow(models.IDquery, measurementType, measurementDate).Scan(&nextNumber)
+	if err != nil {
+		return "", -1, fmt.Errorf("ошибка получения следующего номера измерения: %w", err)
+	}
+
+	id := fmt.Sprintf("%s_%s_%d", measurementType, measurementDate, nextNumber)
+	return id, nextNumber, nil
 }
 
 // Удаление таблицы

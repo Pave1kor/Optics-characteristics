@@ -4,6 +4,9 @@ type DataId struct {
 	Date   string
 	Number int
 }
+type TableName struct {
+	TableName string
+}
 
 type Data struct {
 	X float64 `json:"x"`

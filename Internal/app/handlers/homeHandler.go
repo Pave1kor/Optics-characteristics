@@ -27,7 +27,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		files, err := experiment.GetListOfFiles()
+		files, err := experiment.GetListOfTables()
 		if err != nil {
 			http.Error(w, "Ошибка получения списка файлов", http.StatusInternalServerError)
 			log.Println("Ошибка получения списка файлов:", err)
