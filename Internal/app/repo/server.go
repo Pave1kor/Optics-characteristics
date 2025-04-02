@@ -19,8 +19,28 @@ const (
 	dbname   = "optics"
 )
 
+type DBInterface interface {
+	ConnectToDb() error
+	GetListOfFiles() ([]models.DataId, error)
+	AddDataToDB() error
+	GetDataFromDB(title models.Title) ([]models.Data, error)
+	DeleteDataFromDB() error
+	DropTable() error
+	Close() error
+}
+
+// Структура DBManager, которая реализует DBInterface
+type DBManager struct {
+	Db *sql.DB
+}
+
+// Конструктор для DBManager
+func NewDBManager() *DBManager {
+	return &DBManager{}
+}
+
 // Подключение к БД
-func (manager *DBWrapper) ConnectToDb() error { //данные для подлючения внести в отдельный конфиг
+func (manager *DBManager) ConnectToDb() error { //данные для подлючения внести в отдельный конфиг
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 	var err error
@@ -37,8 +57,8 @@ func (manager *DBWrapper) ConnectToDb() error { //данные для подлю
 }
 
 // Get list of files
-func (manager *DBWrapper) GetListOfFiles() ([]models.DataId, error) {
-	query := `SELECT Date, Number FROM files;`
+func (manager *DBManager) GetListOfFiles() ([]models.DataId, error) {
+	query := `SELECT Date, Number FROM optics;`
 	rows, err := manager.Db.Query(query)
 	dataSet := make([]models.DataId, 0)
 	if err != nil {
@@ -56,7 +76,7 @@ func (manager *DBWrapper) GetListOfFiles() ([]models.DataId, error) {
 }
 
 // Add data to baseData
-func (manager *DBWrapper) AddDataToDB(name string) error {
+func (manager *DBManager) AddDataToDB() error {
 	// SQL-запрос для создания таблицы
 	createTableQuery := `
 CREATE TABLE IF NOT EXISTS measurements (
@@ -80,7 +100,6 @@ CREATE TABLE IF NOT EXISTS measurements (
 	if err != nil {
 		return fmt.Errorf("ошибка чтения данных из файла: %w", err)
 	}
-
 	// Данные измерения, получить от пользователя
 	measurementType := "temperature"
 	measurementDate := "2025-03-28"
@@ -110,10 +129,10 @@ CREATE TABLE IF NOT EXISTS measurements (
 }
 
 // Получение данных из БД
-func (manager *DBWrapper) GetDataFromDB(name string, title models.Title) ([]models.Data, error) {
+func (manager *DBManager) GetDataFromDB(title models.Title) ([]models.Data, error) {
 	// добавить ключи
-	query := fmt.Sprintf(`SELECT "%s", "%s" FROM %s`,
-		title.X, title.Y, name)
+	query := fmt.Sprintf(`SELECT "%s", "%s" FROM data`,
+		title.X, title.Y)
 	rows, err := manager.Db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при запросе данных: %w", err)
@@ -139,10 +158,11 @@ func (manager *DBWrapper) GetDataFromDB(name string, title models.Title) ([]mode
 }
 
 // Удалениеданных из БД
-func (manager *DBWrapper) DeleteDataFromDB(name string) error {
+func (manager *DBManager) DeleteDataFromDB() error {
 	//добавить ключи
-	query := fmt.Sprintf(`DELETE FROM %s`,
-		name)
+	// query := fmt.Sprintf(`DELETE FROM %s`,
+	// 	name)
+	query := `DELETE FROM data`
 	_, err := manager.Db.Exec(query)
 	if err != nil {
 		return fmt.Errorf("ошибка при удалении данных: %w", err)
@@ -152,12 +172,15 @@ func (manager *DBWrapper) DeleteDataFromDB(name string) error {
 }
 
 // Удаление таблицы
-func (manager *DBWrapper) DropTable(name string) error { //удалить по запросу
-	query := fmt.Sprintf(`DROP TABLE IF EXISTS %s;`, name)
+func (manager *DBManager) DropTable() error { //удалить по запросу
+	query := fmt.Sprintf(`DROP TABLE IF EXISTS data`)
 	_, err := manager.Db.Exec(query)
 	if err != nil {
 		return fmt.Errorf("ошибка при удалении таблицы: %w", err)
 	}
 	fmt.Println("Таблица успешно удалена")
 	return nil
+}
+func (manager *DBManager) Close() error {
+	return manager.Db.Close()
 }
