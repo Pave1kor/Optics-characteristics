@@ -4,25 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home Page</title>
-    <link rel="stylesheet" href="/style/styleMain.css">
+    <link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
     <header>
         <h1>Welcome to the Physics Condensed State Server</h1>
         <nav>
             <ul>
-                <li><a href="/home">Home</a></li>
+                <li><a href="/">Home</a></li>
                 <li><a href="/about">About</a></li>
                 <li><a href="/contact">Contact</a></li>
-                <li><a href ="/project">Project</a></li>
             </ul>
         </nav>
     </header>
     <main>
+        <h1>{{.Title}}</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>id</th>
+                    <th>x</th>
+                    <th>y</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Data}}
+                <tr>
+                    <td>{{.Id}}</td>
+                    <td>{{.X}}</td>
+                    <td>{{.Y}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
         <section>
-            <h2>Introduction</h2>
-            <p>This server provides resources and information on condensed state physics.</p>
-           
             <!-- Кнопка для загрузки данных из базы данных -->
             <form action="/" method="POST">
                 <input type="hidden" name="action" value="load">
@@ -43,20 +58,6 @@
             <form action="/" method="POST">
                 <input type="hidden" name="action" value="drop">
                 <button class="return" type="submit">Drop Data</button>
-            {{if .}}
-            <table>
-                <tr>
-                    <th>{{.X}}</th>
-                    <th>{{.Y}}</th>
-                </tr>
-                {{range .}}
-                <tr>
-                    <td>{{.X}}</td>
-                    <td>{{.Y}}</td>
-                </tr>
-                {{end}}
-            </table>
-            {{end}}
         </section>
         <section>
             <h2>Latest News</h2>

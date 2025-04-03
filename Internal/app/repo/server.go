@@ -12,14 +12,15 @@ import (
 )
 
 type DBInterface interface {
-	ConnectToDb() error
-	GetListOfTables() ([]models.TableName, error)
 	AddDataToDB() error
-	GetDataFromDB(title models.Title) ([]models.Data, error)
+	CheckTables(tableName string) error
+	CheckDataInTables(tableName string) (bool, error)
+	ConnectToDb() error
+	Close() error
 	DeleteDataFromDB() error
 	DropTable() error
 	GenerateMeasurementID(measurementType, measurementDate string) (string, int, error)
-	Close() error
+	GetDataFromDB() ([]models.Data, error)
 }
 
 // Структура DBManager, которая реализует DBInterface
@@ -56,52 +57,89 @@ func (manager *DBManager) ConnectToDb() error { //данные для подлю
 	return nil
 }
 
-// Get list of files
-func (manager *DBManager) GetListOfTables() ([]models.TableName, error) {
-	rows, err := manager.Db.Query(models.GetListOfTablesQuery)
-	list := []models.TableName{}
+// Check tables
+func (manager *DBManager) CheckTables(tableName string) error {
+	exists, err := TablesExist(manager.Db, tableName)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("ошибка проверки таблицы: %w", err)
 	}
-	defer rows.Close()
-	// Вывод списка таблиц
-	fmt.Println("Список таблиц:")
-	for rows.Next() {
-		var tableName models.TableName
-		if err := rows.Scan(&tableName); err != nil {
-			log.Fatal(err)
-		}
-		list = append(list, tableName)
+	if exists {
+		return nil
 	}
-	return list, nil
+	_, err = manager.Db.Exec(fmt.Sprintf(models.CreateTableQuery, tableName))
+	if err != nil {
+		return fmt.Errorf("ошибка создания таблицы: %v", err)
+	}
+
+	log.Printf("Таблица %s создана", tableName)
+	return nil
 }
+
+func TablesExist(dB *sql.DB, tableName string) (bool, error) {
+	// Проверяем существование таблицы
+	var exists bool
+	err := dB.QueryRow(models.CheckTableQuery, tableName).Scan(&exists)
+	if err != nil || !exists {
+		return false, err
+	}
+	return true, nil
+}
+
+// Check data in table
+func (manager *DBManager) CheckDataInTables() (bool, error) {
+	var exists bool
+	if err := manager.Db.QueryRow(models.CheckDataInTablesQuery).Scan(&exists); err != nil {
+		return false, fmt.Errorf("ошибка проверки данных в таблице: %w", err)
+	}
+	return exists, nil
+}
+
+// Get list of files
+// func (manager *DBManager) GetListOfTables() ([]models.TableName, error) {
+// 	rows, err := manager.Db.Query(models.GetListOfTablesQuery)
+// 	list := []models.TableName{}
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer rows.Close()
+// 	// Вывод списка таблиц
+// 	fmt.Println("Список таблиц:")
+// 	for rows.Next() {
+// 		var tableName models.TableName
+// 		if err := rows.Scan(&tableName); err != nil {
+// 			log.Fatal(err)
+// 		}
+// 		list = append(list, tableName)
+// 	}
+// 	return list, nil
+// }
 
 // Add data to baseData
 func (manager *DBManager) AddDataToDB() error {
-	// SQL-запрос для создания таблицы
-	_, err := manager.Db.Exec(models.CreateTableQuery)
-	if err != nil {
-		log.Fatal("Ошибка при создании таблицы:", err)
-	}
-	fmt.Println("Таблица успешно создана")
 	//Load data - сделать универсальным
-	result, title, err := read.ReadDataFromFile("data/Data.dat") //путь к файлу name.name
+	result, _, err := read.ReadDataFromFile("data/Data.dat") //путь к файлу name.name
 	if err != nil {
 		return fmt.Errorf("ошибка чтения данных из файла: %w", err)
 	}
+	// Переименование шапки таблицы - добавить переименование столбцов
+	// _, err = manager.Db.Exec(fmt.Sprint(models.RenameTableQuery, title.X, title.Y))
+	// if err != nil {
+	// 	return fmt.Errorf("ошибка при переименовании столбцов: %w", err)
+	// }
 
-	//генерация нового ID
-	// Данные измерения, получить от пользователя
-	measurementType := "temperature"
-	measurementDate := "2025-03-28"
-	id, nextNumber, err := manager.GenerateMeasurementID(measurementType, measurementDate)
-	if err != nil {
-		return fmt.Errorf("ошибка при генерации ID: %w", err)
-	}
+	// //генерация ID - таблицы (уникальное имя?)
+	// // Данные измерения, получить от пользователя
+	// measurementType := "temperature"
+	// measurementDate := "2025-03-28"
+	// id, err := manager.GenerateMeasurementID(measurementType, measurementDate)
+	// if err != nil {
+	// 	return fmt.Errorf("ошибка при генерации ID: %w", err)
+	// }
 
 	// Вставляем каждую точку (x, y)
+
 	for _, point := range result {
-		_, err := manager.Db.Exec(models.InsertQuery, id, measurementType, measurementDate, nextNumber, title, point.X, point.Y)
+		_, err := manager.Db.Exec(models.InsertQuery, point.X, point.Y)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -110,11 +148,9 @@ func (manager *DBManager) AddDataToDB() error {
 }
 
 // Получение данных из БД
-func (manager *DBManager) GetDataFromDB(title models.Title) ([]models.Data, error) {
+func (manager *DBManager) GetDataFromDB() ([]models.Data, error) {
 	// добавить ключи - конфиг?
-	query := fmt.Sprintf(`SELECT "%s", "%s" FROM data`,
-		title.X, title.Y)
-	rows, err := manager.Db.Query(query)
+	rows, err := manager.Db.Query(models.SelectDataQuery)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при запросе данных: %w", err)
 	}
@@ -123,7 +159,7 @@ func (manager *DBManager) GetDataFromDB(title models.Title) ([]models.Data, erro
 	var results []models.Data
 	for rows.Next() {
 		var data models.Data
-		if err := rows.Scan(&data.X, &data.Y); err != nil {
+		if err := rows.Scan(&data.Id, &data.X, &data.Y); err != nil {
 			return nil, fmt.Errorf("ошибка при сканировании данных: %w", err)
 		}
 		results = append(results, data)
@@ -139,38 +175,40 @@ func (manager *DBManager) GetDataFromDB(title models.Title) ([]models.Data, erro
 }
 
 // Удалениеданных из БД
-func (manager *DBManager) DeleteDataFromDB() error {
-	//добавить ключи
-	// query := fmt.Sprintf(`DELETE FROM %s`,
-	// 	name)
-	_, err := manager.Db.Exec(models.DeleteQuery)
-	if err != nil {
-		return fmt.Errorf("ошибка при удалении данных: %w", err)
-	}
-	fmt.Println("Данные успешно удалены")
-	return nil
-}
-func (manager *DBManager) GenerateMeasurementID(measurementType, measurementDate string) (string, int, error) {
-	var nextNumber int
-	err := manager.Db.QueryRow(models.IDquery, measurementType, measurementDate).Scan(&nextNumber)
-	if err != nil {
-		return "", -1, fmt.Errorf("ошибка получения следующего номера измерения: %w", err)
-	}
+//
+//	func (manager *DBManager) DeleteDataFromDB() error {
+//		//добавить ключи
+//		// query := fmt.Sprintf(`DELETE FROM %s`,
+//		// 	name)
+//		_, err := manager.Db.Exec(models.DeleteQuery)
+//		if err != nil {
+//			return fmt.Errorf("ошибка при удалении данных: %w", err)
+//		}
+//		fmt.Println("Данные успешно удалены")
+//		return nil
+//	}
+// func (manager *DBManager) GenerateMeasurementID(measurementType, measurementDate string) (string, error) {
+// 	var nextNumber int
+// 	err := manager.Db.QueryRow(models.IDquery, measurementType, measurementDate).Scan(&nextNumber)
+// 	if err != nil {
+// 		return "", fmt.Errorf("ошибка получения следующего номера измерения: %w", err)
+// 	}
 
-	id := fmt.Sprintf("%s_%s_%d", measurementType, measurementDate, nextNumber)
-	return id, nextNumber, nil
-}
+// 	id := fmt.Sprintf("%s_%s_%d", measurementType, measurementDate, nextNumber)
+// 	return id, nil
+// }
 
 // Удаление таблицы
-func (manager *DBManager) DropTable() error { //удалить по запросу
-	query := fmt.Sprintf(`DROP TABLE IF EXISTS data`)
-	_, err := manager.Db.Exec(query)
-	if err != nil {
-		return fmt.Errorf("ошибка при удалении таблицы: %w", err)
-	}
-	fmt.Println("Таблица успешно удалена")
-	return nil
-}
+// func (manager *DBManager) DropTable() error { //удалить по запросу
+// 	query := fmt.Sprintf(`DROP TABLE IF EXISTS measurement`)
+// 	_, err := manager.Db.Exec(query)
+// 	if err != nil {
+// 		return fmt.Errorf("ошибка при удалении таблицы: %w", err)
+// 	}
+// 	fmt.Println("Таблица успешно удалена")
+// 	return nil
+// }
+
 func (manager *DBManager) Close() error {
 	return manager.Db.Close()
 }

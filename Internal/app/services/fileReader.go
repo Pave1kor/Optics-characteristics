@@ -27,8 +27,9 @@ func ReadDataFromFile(filePath string) ([]models.Data, models.Title, error) {
 		if unicode.IsLetter(rune(text)) {
 			header := strings.Fields(scanner.Text())
 			title = models.Title{
-				X: header[0],
-				Y: header[1],
+				Id: "id",
+				X:  header[0],
+				Y:  header[1],
 			}
 		}
 	}

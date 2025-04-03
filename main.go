@@ -46,6 +46,10 @@ func main() {
 
 func setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
+	// Обработка статических файлов
+	fs := http.FileServer(http.Dir("static"))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	mux.HandleFunc("/", loggingMiddleware(corsMiddleware(handlers.HandleHome)))
 	mux.HandleFunc("/about", loggingMiddleware(handlers.HandlerAbout))
 	mux.HandleFunc("/contact", loggingMiddleware(handlers.HandlerContact))
