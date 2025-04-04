@@ -1,15 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contacts</title>
-    <link rel="stylesheet" href="/static/css/main.css">
-</head>
-<body>
-    <h1>Contacts</h1>
-    
-    <h2>Team Members</h2>
+{{define "title"}}Contacts{{end}}
+{{define "styles"}}
+<link rel="stylesheet" href="/static/css/contacts.css">
+{{end}}
+{{define "content"}}
+<h2>Team Members</h2>
     <ul>
         <li>
             <strong>Name:</strong> John Doe<br>
@@ -36,5 +30,4 @@
             <strong>Phone:</strong> (555) 987-6543
         </li>
     </ul>
-</body>
-</html>
+{{end}}

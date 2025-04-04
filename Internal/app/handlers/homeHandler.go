@@ -5,13 +5,17 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/Pave1kor/Optics-characteristics/internal/app/models"
 	"github.com/Pave1kor/Optics-characteristics/internal/app/repo"
 )
 
 // Кэшируем шаблон при инициализации
-var homeTemplate = template.Must(template.ParseFiles("templates/index.html"))
+var homeTemplate = template.Must(template.ParseFiles(
+	filepath.Join("templates", "base.html"),
+	filepath.Join("templates", "index.html"),
+))
 
 func HandleHome(w http.ResponseWriter, r *http.Request) {
 	experiment := repo.NewDBManager()
@@ -49,12 +53,13 @@ func handleGetRequest(w http.ResponseWriter, db *repo.DBManager) {
 	templateData := struct {
 		Title string
 		Data  []models.Data // Замените на вашу модель данных
+
 	}{
 		Title: "Оптические характеристики",
 		Data:  result,
 	}
 
-	if err := homeTemplate.Execute(w, templateData); err != nil {
+	if err := homeTemplate.ExecuteTemplate(w, "base.html", templateData); err != nil {
 		log.Println("Template execution error:", err)
 	}
 }

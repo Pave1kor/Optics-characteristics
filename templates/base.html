@@ -3,10 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base HTML</title>
+    <title>{{ template "title" }}</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    {{ template "styles" .}}
 </head>
 <body>
-    <h1>Welcome to My Website</h1>
-    <p>This is a basic HTML template.</p>
+    <header>
+        <nav class="navbar navbar-expand-lg mavbar-light bg-light">
+            <div class="container">
+                <a>Optics characteristics</a>
+                <div class="collapse navbar-collapse">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/contact">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main class="content container mt-4">
+        {{ template "content" . }}
+    </main>
+    <footer>
+        <div class="container"></div>
+        <p>&copy; 2023 My Website. All rights reserved.</p>
+    </footer>
 </body>
 </html>

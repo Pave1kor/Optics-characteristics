@@ -47,7 +47,7 @@ func main() {
 func setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 	// Обработка статических файлов
-	fs := http.FileServer(http.Dir("static"))
+	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	mux.HandleFunc("/", loggingMiddleware(corsMiddleware(handlers.HandleHome)))
@@ -65,11 +65,17 @@ func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// This function creates a middleware that sets the CORS headers for an HTTP request
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	// This function returns a new http.HandlerFunc that sets the CORS headers and calls the next handler
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Set the Access-Control-Allow-Origin header to allow requests from any origin
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		// Set the Access-Control-Allow-Methods header to allow GET, POST, and OPTIONS requests
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		// Set the Access-Control-Allow-Headers header to allow the Content-Type header
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		// Call the next handler
 		next(w, r)
 	}
 }

@@ -1,0 +1,41 @@
+/* Дополнения к базовым стилям */
+.content-container {
+    background: white;
+    border-radius: 8px;
+    padding: 2.5rem;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+  }
+  
+  h1, h2, h3 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  
+  h1 {
+    font-size: 2.2rem;
+    margin-bottom: 1.8rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--gray-light);
+  }
+  
+  /* Адаптивность */
+  @media (max-width: 768px) {
+    .navbar-collapse {
+      padding-top: 1rem;
+    }
+    
+    .nav-link {
+      margin: 0.5rem 0 !important;
+      padding-left: 0 !important;
+    }
+    
+    .content.container {
+      padding: 1.5rem;
+    }
+    
+    .content-container {
+      padding: 1.5rem;
+    }
+  }

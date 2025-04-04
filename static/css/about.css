@@ -1,0 +1,115 @@
+/* Основные стили страницы "About" */
+.about-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2.5rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 3px 20px rgba(0,0,0,0.08);
+    line-height: 1.8;
+}
+
+.about-container section {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e6ddd0;
+}
+
+.about-container section:last-child {
+    border-bottom: none;
+    margin-bottom: 1rem;
+}
+
+.about-container h2 {
+    color: #7a6a5a;
+    font-weight: 500;
+    margin: 1.8rem 0 1.2rem;
+    font-size: 1.8rem;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.about-container h2::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 70%;
+    width: 5px;
+    background-color: #c4b8a7;
+    border-radius: 3px;
+}
+
+.about-container p {
+    color: #33332d;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    text-align: justify;
+}
+
+.about-container ul {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.about-container li {
+    background-color: #f9f7f3;
+    padding: 1rem 1.5rem;
+    border-radius: 6px;
+    position: relative;
+    padding-left: 2.5rem;
+    transition: all 0.3s ease;
+}
+
+.about-container li:hover {
+    background-color: #f0eae0;
+    transform: translateX(5px);
+}
+
+.about-container li::before {
+    content: "•";
+    color: #8b7d6b;
+    font-size: 1.8rem;
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .about-container {
+        padding: 1.8rem;
+        margin: 1rem;
+    }
+    
+    .about-container ul {
+        grid-template-columns: 1fr;
+    }
+    
+    .about-container h2 {
+        font-size: 1.6rem;
+    }
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.about-container section {
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+.about-container section:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.about-container section:nth-child(3) {
+    animation-delay: 0.4s;
+}
